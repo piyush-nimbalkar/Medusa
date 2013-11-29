@@ -1,4 +1,4 @@
--module(medusa).
+-module(snake).
 -export([start/0, sender/1]).
 
 
