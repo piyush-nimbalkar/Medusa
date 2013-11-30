@@ -1,19 +1,21 @@
 -module(snake).
--export([start/0, sender/1]).
+-export([start/1, sender/2]).
 
 
-start() ->
-    {ok, Socket} = gen_udp:open(8888, [binary, {active, false}]),
-    SenderPid = spawn(medusa, sender, [Socket]),
-    receiver(Socket, SenderPid).
+start(Port) ->
+    {ok, Socket} = gen_udp:open(Port, [binary, {active, false}]),
+    %% SenderPid = spawn(medusa, sender, [Socket, 8788]),
+    %% receiver(Socket, SenderPid).
+    %% sender(Socket, 8788),
+    sender(Socket, 8788).
 
 
-sender(Socket) ->
-    gen_udp:send(Socket, {127,0,0,1}, 8788, "Hey you good terminal, Happy Thanksgiving!"),
-    receive
-        ping ->
-            sender(Socket)
-    end.
+sender(Socket, Port) ->
+    gen_udp:send(Socket, {127,0,0,1}, Port, "Hey you good terminal, Happy Thanksgiving!").
+    %% receive
+        %% ping ->
+            %% sender(Socket)
+    %% end.
 
 
 receiver(Socket, SenderPid) ->
