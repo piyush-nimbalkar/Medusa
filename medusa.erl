@@ -23,7 +23,7 @@ create_node(NodeNumber, NodeLimit, Fragments) ->
     SenderName = list_to_atom(string:concat("snake_sender_", integer_to_list(NodeNumber))),
     ReceiverName = list_to_atom(string:concat("snake_receiver_", integer_to_list(NodeNumber))),
     register(SenderName, spawn_link(snake, sender, [NodeNumber, NodeLimit])),
-    register(ReceiverName, spawn_link(snake, receiver, [NodeNumber, NodeLimit, lists:nth(NodeNumber, Fragments)])),
+    register(ReceiverName, spawn_link(snake, start_receiver, [NodeNumber, NodeLimit, lists:nth(NodeNumber, Fragments)])),
     create_node(NodeNumber + 1, NodeLimit, Fragments).
 
 
@@ -35,7 +35,7 @@ select_option() ->
     {ok, [X]} = io:fread("Please enter your choice: ", "~s"),
     case X of
         "1" ->
-            snake_sender_1 ! {protocol, 1};
+            snake_sender_1 ! {protocol, long_word};
         "2" ->
             {ok, [W]} = io:fread("Enter the word to be searched : ", "~s"),
             io:format("Word is : ~s~n",[W]);
