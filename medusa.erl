@@ -21,10 +21,31 @@ start() ->
     NumFragments = 10,
     WordLength  = length(Tokens),
     FragSize = WordLength div (NumFragments-1),
-    io:format("~p~n",[make_sublists(FragSize, Tokens)]).
+    io:format("~p~n",[make_sublists(FragSize, Tokens)]),
+    select_ur_option().
 
 
-read_file(FileName) ->
+select_ur_option() ->    
+    io:format("~n1 : Longest Word ~n"),
+    io:format("2 : Search a word ~n"),
+    io:format("3 : Find most frequent word ~n"),
+    io:format("4 : Exit the program ~n"),
+    io:format("Please enter your choice !!!~n"),
+    {ok, [X]} = io:fread("input : ", "~s"),
+    io:format("~p~n",[X]),
+    case X of
+        "1" -> io:format("In 1");
+        "2" -> 
+          {ok, [W]} = io:fread("Enter the word to be searched : ", "~s"),
+          io:format("Word is : ~s~n",[W]);
+	"3" -> io:format("In 3");
+        "4" -> exit(self(),normal);
+	Check -> io:format("Please enter the correct choice!!~n")
+    end,
+    select_ur_option().
+
+
+read_file(FileName)  ->
     {ok, Device} = file:open(FileName, [read]),
     List1 = [],
     Tokens = count_lines(Device, List1),
