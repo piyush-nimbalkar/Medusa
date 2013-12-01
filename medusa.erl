@@ -8,14 +8,13 @@ start() ->
     WordLength  = length(Tokens),
     FragSize = WordLength div (NumOfNodes - 1),
     Fragments = make_sublists(FragSize, Tokens),
-    create_nodes(NumOfNodes, Fragments).
-    %% select_option().
+    create_nodes(NumOfNodes, Fragments),
+    select_option().
 
 
 create_nodes(NumOfNodes, Fragments) ->
     compile:file(snake, [debug_info, export_all]),
-    create_node(1, NumOfNodes, Fragments),
-    timer:sleep(60000).
+    create_node(1, NumOfNodes, Fragments).
 
 
 create_node(NodeNumber, NodeLimit, _) when NodeNumber > NodeLimit ->
@@ -35,7 +34,8 @@ select_option() ->
     io:format("4 : Exit the Program ~n"),
     {ok, [X]} = io:fread("Please enter your choice: ", "~s"),
     case X of
-        "1" -> io:format("In 1");
+        "1" ->
+            snake_sender_1 ! {protocol, 1};
         "2" ->
             {ok, [W]} = io:fread("Enter the word to be searched : ", "~s"),
             io:format("Word is : ~s~n",[W]);
@@ -43,7 +43,7 @@ select_option() ->
         "4" -> exit("Bye Bye!");
         _ -> io:format("Please enter the correct choice!!~n")
     end,
-    select_option().
+    timer:sleep(20000).
 
 
 read_file(FileName)  ->
