@@ -1,5 +1,5 @@
 -module(snake).
--export([sender/2, receiver/2]).
+-export([sender/2, receiver/3]).
 
 
 sender(ProcessNumber, ProcessLimit) ->
@@ -7,19 +7,38 @@ sender(ProcessNumber, ProcessLimit) ->
     Neighbor = list_to_atom(string:concat("snake_receiver_" , integer_to_list(random:uniform(ProcessLimit)))),
     Receiver = list_to_atom(string:concat("snake_receiver_" , integer_to_list(ProcessNumber))),
     timer:sleep(2000),
+
     Receiver ! {senderping},
     receive
-        value -> Value = value
+        Value -> awesome
     end,
-    Neighbor ! {ProcessNumber, ping},
+
+    Neighbor ! {ProcessNumber, Value},
     sender(ProcessNumber, ProcessLimit).
 
 
-receiver(ProcessNumber, ProcessLimit) ->
+receiver(ProcessNumber, ProcessLimit, Fragment) ->
     Sender = list_to_atom(string:concat("snake_sender_" , integer_to_list(ProcessNumber))),
-    receive
-        {senderping} -> Sender ! value;
-        {NeighborNumber, _} ->
-            io:format("Received Ping from Node ~w to Node ~w~n", [NeighborNumber, ProcessNumber])
+
+    case (get(longest) == undefined) of
+        true ->
+            compile:file(longest, [debug_info, export_all]),
+            put(longest, longest:find_longest(Fragment));
+        false ->
+            do_nothing
     end,
-    receiver(ProcessNumber, ProcessLimit).
+
+    receive
+        {senderping} -> Sender ! get(longest);
+        {NeighborNumber, LongestWord} ->
+            case (length(LongestWord) >= length(get(longest))) of
+                true ->
+                    case (length(LongestWord) == length(get(longest))) of
+                        true -> put(longest, max(LongestWord, get(longest)));
+                        false -> put(longest, LongestWord)
+                    end;
+                false -> do_nothing
+            end,
+            io:format("Updated Word at Node ~w: ~s~n~n", [ProcessNumber, get(longest)])
+    end,
+    receiver(ProcessNumber, ProcessLimit, Fragment).

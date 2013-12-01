@@ -1,50 +1,49 @@
 -module(medusa).
--export([start/0, create_nodes/0]).
-
-
-create_nodes() ->
-    compile:file(snake, [debug_info, export_all]),
-    create_node(1, 10),
-    timer:sleep(20000).
-
-
-create_node(ProcessNumber, ProcessLimit) when ProcessNumber > ProcessLimit ->
-    done;
-create_node(ProcessNumber, ProcessLimit) ->
-    SenderName = list_to_atom(string:concat("snake_sender_", integer_to_list(ProcessNumber))),
-    ReceiverName = list_to_atom(string:concat("snake_receiver_", integer_to_list(ProcessNumber))),
-    register(SenderName, spawn_link(snake, sender, [ProcessNumber, ProcessLimit])),
-    register(ReceiverName, spawn_link(snake, receiver, [ProcessNumber, ProcessLimit])),
-    create_node(ProcessNumber + 1, ProcessLimit).
+-export([start/0, select_option/0]).
 
 
 start() ->
+    NumOfNodes = 10,
     Tokens = read_file("data.txt"),
-    NumFragments = 10,
     WordLength  = length(Tokens),
-    FragSize = WordLength div (NumFragments-1),
-    io:format("~p~n",[make_sublists(FragSize, Tokens)]),
-    select_ur_option().
+    FragSize = WordLength div (NumOfNodes - 1),
+    Fragments = make_sublists(FragSize, Tokens),
+    create_nodes(NumOfNodes, Fragments).
+    %% select_option().
 
 
-select_ur_option() ->    
+create_nodes(NumOfNodes, Fragments) ->
+    compile:file(snake, [debug_info, export_all]),
+    create_node(1, NumOfNodes, Fragments),
+    timer:sleep(60000).
+
+
+create_node(NodeNumber, NodeLimit, _) when NodeNumber > NodeLimit ->
+    done;
+create_node(NodeNumber, NodeLimit, Fragments) ->
+    SenderName = list_to_atom(string:concat("snake_sender_", integer_to_list(NodeNumber))),
+    ReceiverName = list_to_atom(string:concat("snake_receiver_", integer_to_list(NodeNumber))),
+    register(SenderName, spawn_link(snake, sender, [NodeNumber, NodeLimit])),
+    register(ReceiverName, spawn_link(snake, receiver, [NodeNumber, NodeLimit, lists:nth(NodeNumber, Fragments)])),
+    create_node(NodeNumber + 1, NodeLimit, Fragments).
+
+
+select_option() ->
     io:format("~n1 : Longest Word ~n"),
-    io:format("2 : Search a word ~n"),
-    io:format("3 : Find most frequent word ~n"),
-    io:format("4 : Exit the program ~n"),
-    io:format("Please enter your choice !!!~n"),
-    {ok, [X]} = io:fread("input : ", "~s"),
-    io:format("~p~n",[X]),
+    io:format("2 : Search a Word ~n"),
+    io:format("3 : Find Most Frequent Word ~n"),
+    io:format("4 : Exit the Program ~n"),
+    {ok, [X]} = io:fread("Please enter your choice: ", "~s"),
     case X of
         "1" -> io:format("In 1");
-        "2" -> 
-          {ok, [W]} = io:fread("Enter the word to be searched : ", "~s"),
-          io:format("Word is : ~s~n",[W]);
-	"3" -> io:format("In 3");
-        "4" -> exit(self(),normal);
-	Check -> io:format("Please enter the correct choice!!~n")
+        "2" ->
+            {ok, [W]} = io:fread("Enter the word to be searched : ", "~s"),
+            io:format("Word is : ~s~n",[W]);
+        "3" -> io:format("In 3");
+        "4" -> exit("Bye Bye!");
+        _ -> io:format("Please enter the correct choice!!~n")
     end,
-    select_ur_option().
+    select_option().
 
 
 read_file(FileName)  ->
