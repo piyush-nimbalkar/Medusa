@@ -1,30 +1,25 @@
 -module(snake).
--export([start/1, sender/2]).
+-export([sender/2, receiver/2]).
 
 
-start(Port) ->
-    {ok, Socket} = gen_udp:open(Port, [binary, {active, false}]),
-    %% SenderPid = spawn(medusa, sender, [Socket, 8788]),
-    %% receiver(Socket, SenderPid).
-    %% sender(Socket, 8788),
-    sender(Socket, 8788).
-
-
-sender(Socket, Port) ->
-    gen_udp:send(Socket, {127,0,0,1}, Port, "Hey you good terminal, Happy Thanksgiving!").
-    %% receive
-        %% ping ->
-            %% sender(Socket)
-    %% end.
-
-
-receiver(Socket, SenderPid) ->
-    X = gen_udp:recv(Socket, 0),
-    case X of
-        {ok, {_, _, Packet}} ->
-            io:format("MESSAGE: ~s~n", [Packet]);
-        {error, Reason} ->
-            io:format("ERROR: ~s~n", [Reason])
+sender(ProcessNumber, ProcessLimit) ->
+    random:seed(now()),
+    Neighbor = list_to_atom(string:concat("snake_receiver_" , integer_to_list(random:uniform(ProcessLimit)))),
+    Receiver = list_to_atom(string:concat("snake_receiver_" , integer_to_list(ProcessNumber))),
+    timer:sleep(2000),
+    Receiver ! {senderping},
+    receive
+        value -> Value = value
     end,
-    SenderPid ! ping,
-    receiver(Socket, SenderPid).
+    Neighbor ! {ProcessNumber, ping},
+    sender(ProcessNumber, ProcessLimit).
+
+
+receiver(ProcessNumber, ProcessLimit) ->
+    Sender = list_to_atom(string:concat("snake_sender_" , integer_to_list(ProcessNumber))),
+    receive
+        {senderping} -> Sender ! value;
+        {NeighborNumber, _} ->
+            io:format("Received Ping from Node ~w to Node ~w~n", [NeighborNumber, ProcessNumber])
+    end,
+    receiver(ProcessNumber, ProcessLimit).

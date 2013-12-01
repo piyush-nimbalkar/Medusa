@@ -4,16 +4,18 @@
 
 create_nodes() ->
     compile:file(snake, [debug_info, export_all]),
-    create_node(8000, 8010).
+    create_node(1, 10),
+    timer:sleep(20000).
 
 
-create_node(Port, PortEnd) ->
-    if Port > PortEnd ->
-            done;
-       true ->
-            spawn(snake, start, [Port]),
-            create_node(Port + 2, PortEnd)
-    end.
+create_node(ProcessNumber, ProcessLimit) when ProcessNumber > ProcessLimit ->
+    done;
+create_node(ProcessNumber, ProcessLimit) ->
+    SenderName = list_to_atom(string:concat("snake_sender_", integer_to_list(ProcessNumber))),
+    ReceiverName = list_to_atom(string:concat("snake_receiver_", integer_to_list(ProcessNumber))),
+    register(SenderName, spawn_link(snake, sender, [ProcessNumber, ProcessLimit])),
+    register(ReceiverName, spawn_link(snake, receiver, [ProcessNumber, ProcessLimit])),
+    create_node(ProcessNumber + 1, ProcessLimit).
 
 
 start() ->
