@@ -16,7 +16,7 @@ search_word(Tokens, Word) when length(Tokens) == 0 ->
 
 search_word( Tokens, Word) ->
 	[Head | Tail] = Tokens,
-	{match, [{Start, Length}]} = re:run(Head, "[a-z,A-Z]+"),
+	{match, [{Start, Length}]} = re:run(Head, "[a-zA-Z]+"),
 	Token = string:substr(Head, Start+1, Length),
         if Token == Word ->
 		true;
