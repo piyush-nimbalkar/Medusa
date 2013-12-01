@@ -16,3 +16,14 @@
         '._.'  \  \__/  /  '._.'
             .--`\      /`--.
                  '----'
+                 
+
+### Steps to Run:
+
+```
+$ erlc medusa.erl
+$ erl -noshell -s medusa start -s init stop
+```
+
+
+                 
