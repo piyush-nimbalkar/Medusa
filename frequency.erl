@@ -1,5 +1,5 @@
 -module(frequency).
--export([start/0]).
+-export([start/0, create_dictionary/1, find_most_frequent/1]).
 
 start() ->
     Packet = "...Heytretrrrrrrrrrrrrrrr$%$#?? you good you you terminal, Happy Thanksgiving!",
@@ -32,13 +32,12 @@ create_dictionary(Packet) ->
 
 
 find_most_frequent(Dict) ->
-    {MaxKey, MaxValue} = dict:fold(fun(K, V, {MaxKey, MaxValue}) ->
-                                           case (V > MaxValue) of
-                                               true -> {K, V};
-                                               false -> {MaxKey, MaxValue}
-                                           end
-                                   end, {non_existing_key, 0}, Dict),
-    io:format("Maximum = ~s : ~B~n", [MaxKey, MaxValue]).
+    dict:fold(fun(K, V, {MaxKey, MaxValue}) ->
+                      case (V > MaxValue) of
+                          true -> {K, V};
+                          false -> {MaxKey, MaxValue}
+                      end
+              end, {non_existing_key, 0}, Dict).
 
 
 print_dict(Dict) ->

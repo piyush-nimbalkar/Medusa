@@ -19,9 +19,9 @@ sender(ProcessNumber, ProcessLimit) ->
     timer:sleep(1000),
 
     update_protocol(),
-    OwnReceiver ! {get(protocol), sender_ping},
+    OwnReceiver ! {get(protocol), ping_from_sender},
     receive
-        {value, Value} -> got_value_from_receiver
+        {pong_from_receiver, Value} -> got_value_from_receiver
     end,
 
     NeighborSender ! {protocol, get(protocol)},
@@ -47,12 +47,25 @@ update_protocol() ->
 
 receiver() ->
     receive
-        {long_word, sender_ping} ->
+        {long_word, ping_from_sender} ->
             send_longest_word();
+        {max_freq, ping_from_sender} ->
+            send_frequency_details();
         {long_word, _, NeighborWord} ->
-            find_longest_word(NeighborWord)
+            find_longest_word(NeighborWord);
+        {max_freq, _, {NeighborDict, GlobalMostFreq}} ->
+            compile:file(frequency, [debug_info, export_all]),
+            frequency:print_dict(NeighborDict)
     end,
     receiver().
+
+
+send_frequency_details() ->
+    OwnSender = list_to_atom(string:concat("snake_sender_" , integer_to_list(get(process_number)))),
+    compile:file(frequency, [debug_info, export_all]),
+    LocalDict = frequency:create_dictionary("good terminal when is is Thanksgiving"),
+    {MaxKey, MaxValue} = frequency:find_most_frequent(LocalDict),
+    OwnSender ! {pong_from_receiver, {LocalDict, {MaxKey, MaxValue}}}.
 
 
 send_longest_word() ->
@@ -61,7 +74,7 @@ send_longest_word() ->
                       false -> get(longest_word);
                       true -> ""
                   end,
-    OwnSender ! {value, LongestWord}.
+    OwnSender ! {pong_from_receiver, LongestWord}.
 
 
 find_longest_word(NeighborWord) ->

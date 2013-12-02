@@ -42,7 +42,8 @@ select_option(Fragments) ->
         "2" ->
             {ok, [W]} = io:fread("Enter the word to be searched : ", "~s"),
             io:format("Word is : ~s~n",[W]);
-        "3" -> io:format("In 3");
+        "3" ->
+            snake_sender_1 ! {protocol, max_freq};
         "4" ->
             io:format("Fragment that you want to modify (1 - ~B): ", [length(Fragments)]),
             {ok, [FragmentNumber]} = io:fread("", "~d"),
