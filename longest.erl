@@ -1,6 +1,7 @@
 -module(longest).
 -export([find_longest/1]).
 
+
 find_longest(Packet) ->
     Tokens = string:tokens(Packet, " "),
     Longest = strip_word(Tokens),
@@ -14,11 +15,15 @@ strip_word(Tokens) ->
     [Head | Tail] = Tokens,
     case re:run(Head, "[a-zA-Z]+") of
         {match, [{_, Length}]} ->
-            Max = strip_word(Tail),
-            if length(Max) > Length ->
-                    Max;
+            MaxWord = strip_word(Tail),
+            if length(MaxWord) >= Length ->
+                    case length(MaxWord) == Length of
+                        true -> max(Head, MaxWord);
+                        false -> MaxWord
+                    end;
                true ->
                     Head
             end;
-        nomatch -> error
+        nomatch ->
+            strip_word(Tail)
     end.

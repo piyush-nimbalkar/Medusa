@@ -56,7 +56,6 @@ send_longest_word() ->
 
 find_longest_word(NeighborWord) ->
     initialize_longest_word(),
-
     case (length(NeighborWord) >= length(get(longest_word))) of
         true ->
             update_longest_word(NeighborWord);
