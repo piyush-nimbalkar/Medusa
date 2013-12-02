@@ -1,16 +1,16 @@
 -module(medusa).
--export([start/0, select_option/0]).
+-export([start/0]).
 
 
 start() ->
-    NumOfNodes = 11,
-    NumOfReplicas = 3,
+    NumOfNodes = 10,
+    NumOfReplicas = 2,
     Tokens = read_file("data.txt"),
     FileLength  = length(Tokens),
     FragSize = NumOfReplicas * (FileLength div (NumOfNodes - 1)),
     Fragments = make_sublists(FragSize, Tokens),
     create_nodes(NumOfNodes, Fragments),
-    select_option().
+    select_option(Fragments).
 
 
 create_nodes(NumOfNodes, Fragments) ->
@@ -29,21 +29,30 @@ create_node(NodeNumber, NumOfNodes, Fragments) ->
     create_node(NodeNumber + 1, NumOfNodes, Fragments).
 
 
-select_option() ->
+select_option(Fragments) ->
     io:format("~n1 : Longest Word ~n"),
     io:format("2 : Search a Word ~n"),
     io:format("3 : Find Most Frequent Word ~n"),
-    io:format("4 : Exit the Program ~n"),
-    {ok, [X]} = io:fread("Please enter your choice: ", "~s"),
-    case X of
+    io:format("4 : Update Contents of a Fragment ~n"),
+    io:format("5 : Exit the Program ~n"),
+    {ok, [Choice]} = io:fread("Please Enter Your Choice: ", "~s"),
+    case Choice of
         "1" ->
             snake_sender_1 ! {protocol, long_word};
         "2" ->
             {ok, [W]} = io:fread("Enter the word to be searched : ", "~s"),
             io:format("Word is : ~s~n",[W]);
         "3" -> io:format("In 3");
-        "4" -> exit("Bye Bye!");
-        _ -> io:format("Please enter the correct choice!!~n")
+        "4" ->
+            io:format("Fragment that you want to modify (1 - ~B): ", [length(Fragments)]),
+            {ok, [FragmentNumber]} = io:fread("", "~d"),
+            io:format("---------------------------------------------------------~n"),
+            io:format("~s~n---------------------------------------------------------~n", [lists:nth(FragmentNumber, Fragments)]),
+            {ok, [OldData]} = io:fread("Replace String: ", "~s"),
+            {ok, [NewData]} = io:fread("Replace String With: ", "~s"),
+            snake_sender_1 ! {protocol, update_frag, {FragmentNumber, {OldData, NewData}}};
+        "5" -> exit("Bye Bye!");
+        _ -> io:format("~nPlease Enter the Correct Choice !!~n")
     end,
     timer:sleep(20000).
 

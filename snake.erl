@@ -28,13 +28,22 @@ sender(ProcessNumber, ProcessLimit) ->
     NeighborReceiver ! {get(protocol), ProcessNumber, Value},
     sender(ProcessNumber, ProcessLimit).
 
+
 update_protocol() ->
     case (get(protocol) == undefined) of
-        true -> receive
-                    {protocol, Protocol} -> put(protocol, Protocol)
-                end;
-        false -> do_nothing
+        true ->
+            receive
+                {protocol, Protocol} -> put(protocol, Protocol);
+                {protocol, update_frag, {FragmentNumber, {OldData, NewData}}} ->
+                    put(protocol, update_frag),
+                    put(fragment_to_be_modified, FragmentNumber),
+                    put(old_data, OldData),
+                    put(new_data, NewData)
+            end;
+        false ->
+            do_nothing
     end.
+
 
 receiver() ->
     receive
