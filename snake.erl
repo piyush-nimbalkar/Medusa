@@ -53,19 +53,16 @@ receiver() ->
             send_frequency_details();
         {long_word, _, NeighborWord} ->
             find_longest_word(NeighborWord);
-        {max_freq, _, {NeighborDict, GlobalMostFreq}} ->
-            compile:file(frequency, [debug_info, export_all]),
-            frequency:print_dict(NeighborDict)
+        {max_freq, _, {NeighborDict, GlobalMostFreq, NeighborFragmentId}} ->
+            find_updated_frequency(NeighborDict, GlobalMostFreq, NeighborFragmentId)
     end,
     receiver().
 
 
 send_frequency_details() ->
     OwnSender = list_to_atom(string:concat("snake_sender_" , integer_to_list(get(process_number)))),
-    compile:file(frequency, [debug_info, export_all]),
-    LocalDict = frequency:create_dictionary("good terminal when is is Thanksgiving"),
-    {MaxKey, MaxValue} = frequency:find_most_frequent(LocalDict),
-    OwnSender ! {pong_from_receiver, {LocalDict, {MaxKey, MaxValue}}}.
+    initialize_frequency_details(),
+    OwnSender ! {pong_from_receiver, {get(local_dict), get(global_most_frequent), get(fragment_id)}}.
 
 
 send_longest_word() ->
@@ -108,3 +105,28 @@ update_longest_word(NeighborWord) ->
             io:format("Updated Word at Node ~w: ~s -> ~s~n~n", [ProcessNumber, LongestWord, NeighborWord]),
             put(longest_word, NeighborWord)
     end.
+
+
+initialize_frequency_details() ->
+    case (get(global_most_frequent) == undefined) of
+        true ->
+            compile:file(frequency, [debug_info, export_all]),
+            put(local_dict, frequency:create_dictionary(get(fragment))),
+            put(global_dict, get(local_dict)),
+            put(global_most_frequent, frequency:find_most_frequent(get(local_dict))),
+            put(visited_fragment_list, [get(fragment_id)]);
+        false ->
+            do_nothing
+    end.
+
+
+find_updated_frequency(NeighborDict, NeighborPair, NeighborFragmentId) ->
+    initialize_frequency_details(),
+    compile:file(frequency, [debug_info, export_all]),
+    case lists:member(NeighborFragmentId, get(visited_fragment_list)) of
+        false ->
+            put(global_dict, frequency:merge(get(global_dict), NeighborDict)),
+            put(visited_fragment_list, lists:append(get(visited_fragment_list), [NeighborFragmentId]));
+        true -> do_nothing
+    end,
+    frequency:print_dict(get(global_dict)).

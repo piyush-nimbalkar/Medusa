@@ -1,5 +1,5 @@
 -module(frequency).
--export([start/0, create_dictionary/1, find_most_frequent/1]).
+-export([start/0, create_dictionary/1, find_most_frequent/1, merge/2]).
 
 start() ->
     Packet = "...Heytretrrrrrrrrrrrrrrr$%$#?? you good you you terminal, Happy Thanksgiving!",
@@ -25,9 +25,12 @@ merge(Dict1, Dict2) ->
 create_dictionary(Packet) ->
     Tokens = string:tokens(Packet, " "),
     lists:foldl(fun(Word, Dict) ->
-                        {match, [{Start, Length}]} = re:run(Word, "[a-zA-Z]+"),
-                        RefinedWord = string:substr(Word, Start+1, Length),
-                        dict:update(RefinedWord, fun(Count) -> Count + 1 end, 1, Dict)
+                        case re:run(Word, "[a-zA-Z]+") of
+                            {match, [{Start, Length}]} ->
+                                RefinedWord = string:substr(Word, Start+1, Length),
+                                dict:update(RefinedWord, fun(Count) -> Count + 1 end, 1, Dict);
+                            nomatch -> Dict
+                        end
                 end, dict:new(), Tokens).
 
 

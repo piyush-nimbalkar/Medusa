@@ -55,7 +55,7 @@ select_option(Fragments) ->
         "5" -> exit("Bye Bye!");
         _ -> io:format("~nPlease Enter the Correct Choice !!~n")
     end,
-    timer:sleep(20000).
+    timer:sleep(60000).
 
 
 read_file(FileName)  ->
