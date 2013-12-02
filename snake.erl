@@ -1,9 +1,10 @@
 -module(snake).
--export([sender/2, start_receiver/3]).
+-export([sender/2, start_receiver/4]).
 
 
-start_receiver(ProcessNumber, ProcessLimit, Fragment) ->
+start_receiver(ProcessNumber, ProcessLimit, FragmentId, Fragment) ->
     put(process_number, ProcessNumber),
+    put(fragment_id, FragmentId),
     put(fragment, Fragment),
     receiver().
 

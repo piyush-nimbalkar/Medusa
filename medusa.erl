@@ -3,10 +3,11 @@
 
 
 start() ->
-    NumOfNodes = 10,
+    NumOfNodes = 11,
+    NumOfReplicas = 3,
     Tokens = read_file("data.txt"),
-    WordLength  = length(Tokens),
-    FragSize = WordLength div (NumOfNodes - 1),
+    FileLength  = length(Tokens),
+    FragSize = NumOfReplicas * (FileLength div (NumOfNodes - 1)),
     Fragments = make_sublists(FragSize, Tokens),
     create_nodes(NumOfNodes, Fragments),
     select_option().
@@ -17,14 +18,15 @@ create_nodes(NumOfNodes, Fragments) ->
     create_node(1, NumOfNodes, Fragments).
 
 
-create_node(NodeNumber, NodeLimit, _) when NodeNumber > NodeLimit ->
+create_node(NodeNumber, NumOfNodes, _) when NodeNumber > NumOfNodes ->
     done;
-create_node(NodeNumber, NodeLimit, Fragments) ->
+create_node(NodeNumber, NumOfNodes, Fragments) ->
     SenderName = list_to_atom(string:concat("snake_sender_", integer_to_list(NodeNumber))),
     ReceiverName = list_to_atom(string:concat("snake_receiver_", integer_to_list(NodeNumber))),
-    register(SenderName, spawn_link(snake, sender, [NodeNumber, NodeLimit])),
-    register(ReceiverName, spawn_link(snake, start_receiver, [NodeNumber, NodeLimit, lists:nth(NodeNumber, Fragments)])),
-    create_node(NodeNumber + 1, NodeLimit, Fragments).
+    FragmentNumber = (NodeNumber rem length(Fragments)) + 1,
+    register(SenderName, spawn_link(snake, sender, [NodeNumber, NumOfNodes])),
+    register(ReceiverName, spawn_link(snake, start_receiver, [NodeNumber, NumOfNodes, FragmentNumber, lists:nth(FragmentNumber, Fragments)])),
+    create_node(NodeNumber + 1, NumOfNodes, Fragments).
 
 
 select_option() ->
