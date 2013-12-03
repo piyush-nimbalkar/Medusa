@@ -10,7 +10,8 @@ start() ->
     print_dict(Dict1),
     print_dict(Dict2),
     print_dict(MergedDict),
-    find_most_frequent(MergedDict).
+    {K,V} = find_most_frequent(MergedDict),
+    io:format("~s :~B",[K,V]).
 
 
 merge(Dict1, Dict2) ->
@@ -41,7 +42,6 @@ find_most_frequent(Dict) ->
                           false -> {MaxKey, MaxValue}
                       end
               end, {non_existing_key, 0}, Dict).
-
 
 print_dict(Dict) ->
     dict:fold(fun(Word, Count, AccIn) ->

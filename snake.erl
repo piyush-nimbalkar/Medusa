@@ -53,16 +53,16 @@ receiver() ->
             send_frequency_details();
         {long_word, _, NeighborWord} ->
             find_longest_word(NeighborWord);
-        {max_freq, _, {NeighborDict, GlobalMostFreq, NeighborFragmentId}} ->
-            find_updated_frequency(NeighborDict, GlobalMostFreq, NeighborFragmentId)
-    end,
+        {max_freq, _, {NeighborDict, GlobalMostFreq, NeighborFragmentId,NeighborMaxPair}} ->
+            find_updated_frequency(NeighborDict, GlobalMostFreq, NeighborFragmentId,NeighborMaxPair)
+        end,
     receiver().
 
 
 send_frequency_details() ->
     OwnSender = list_to_atom(string:concat("snake_sender_" , integer_to_list(get(process_number)))),
     initialize_frequency_details(),
-    OwnSender ! {pong_from_receiver, {get(local_dict), get(global_most_frequent), get(fragment_id)}}.
+    OwnSender ! {pong_from_receiver, {get(local_dict), get(global_most_frequent), get(fragment_id),get(max_pair)}}.
 
 
 send_longest_word() ->
@@ -114,19 +114,28 @@ initialize_frequency_details() ->
             put(local_dict, frequency:create_dictionary(get(fragment))),
             put(global_dict, get(local_dict)),
             put(global_most_frequent, frequency:find_most_frequent(get(local_dict))),
+	    put(max_pair,frequency:find_most_frequent(get(local_dict))),    
             put(visited_fragment_list, [get(fragment_id)]);
         false ->
             do_nothing
     end.
 
-
-find_updated_frequency(NeighborDict, NeighborPair, NeighborFragmentId) ->
+find_updated_frequency(NeighborDict, NeighborPair, NeighborFragmentId,NeighborMaxPair) ->
     initialize_frequency_details(),
     compile:file(frequency, [debug_info, export_all]),
     case lists:member(NeighborFragmentId, get(visited_fragment_list)) of
         false ->
-            put(global_dict, frequency:merge(get(global_dict), NeighborDict)),
-            put(visited_fragment_list, lists:append(get(visited_fragment_list), [NeighborFragmentId]));
+	    put(global_dict, frequency:merge(get(global_dict), NeighborDict)),
+            put(visited_fragment_list, lists:append(get(visited_fragment_list), [NeighborFragmentId])),
+	    {K1,V1} = frequency:find_most_frequent(get(global_dict)),
+	    {K,V} = NeighborMaxPair,
+	    case V > V1 of
+		true -> put(global_max_pair,{K,V}),
+			io:format("Max Pair ~s: ~B ~n",[K,V]);
+		false -> put(global_max_pair,{K1,V1}),
+			io:format("Max Pair ~s: ~B ~n",[K1,V1])
+	    end;
+	    
         true -> do_nothing
-    end,
-    frequency:print_dict(get(global_dict)).
+    end.
+
