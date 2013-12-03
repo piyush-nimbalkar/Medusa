@@ -33,7 +33,8 @@ update_protocol() ->
     case (get(protocol) == undefined) of
         true ->
             receive
-                {protocol, Protocol} -> put(protocol, Protocol);
+                {protocol, Protocol} ->
+                    put(protocol, Protocol);
                 {protocol, update_frag, {FragmentNumber, {OldData, NewData}}} ->
                     put(protocol, update_frag),
                     put(fragment_to_be_modified, FragmentNumber),
@@ -53,16 +54,16 @@ receiver() ->
             send_frequency_details();
         {long_word, _, NeighborWord} ->
             find_longest_word(NeighborWord);
-        {max_freq, _, {NeighborDict, GlobalMostFreq, NeighborFragmentId,NeighborMaxPair}} ->
-            find_updated_frequency(NeighborDict, GlobalMostFreq, NeighborFragmentId,NeighborMaxPair)
-        end,
+        {max_freq, _, {NeighborDict, GlobalMostFreq, NeighborFragmentId}} ->
+            find_updated_frequency(NeighborDict, GlobalMostFreq, NeighborFragmentId)
+    end,
     receiver().
 
 
 send_frequency_details() ->
     OwnSender = list_to_atom(string:concat("snake_sender_" , integer_to_list(get(process_number)))),
     initialize_frequency_details(),
-    OwnSender ! {pong_from_receiver, {get(local_dict), get(global_most_frequent), get(fragment_id),get(max_pair)}}.
+    OwnSender ! {pong_from_receiver, {get(local_dict), get(global_most_frequent), get(fragment_id)}}.
 
 
 send_longest_word() ->
@@ -99,10 +100,10 @@ update_longest_word(NeighborWord) ->
     ProcessNumber = get(process_number),
     case (length(NeighborWord) == length(LongestWord)) of
         true ->
-            io:format("Updated Word at Node ~w: ~s -> ~s~n~n", [ProcessNumber, LongestWord, max(NeighborWord, LongestWord)]),
+            io:format("Updated Word at Node ~-4B: ~s -> ~s~n~n", [ProcessNumber, LongestWord, max(NeighborWord, LongestWord)]),
             put(longest_word, max(NeighborWord, LongestWord));
         false ->
-            io:format("Updated Word at Node ~w: ~s -> ~s~n~n", [ProcessNumber, LongestWord, NeighborWord]),
+            io:format("Updated Word at Node ~-4B: ~s -> ~s~n~n", [ProcessNumber, LongestWord, NeighborWord]),
             put(longest_word, NeighborWord)
     end.
 
@@ -113,29 +114,36 @@ initialize_frequency_details() ->
             compile:file(frequency, [debug_info, export_all]),
             put(local_dict, frequency:create_dictionary(get(fragment))),
             put(global_dict, get(local_dict)),
-            put(global_most_frequent, frequency:find_most_frequent(get(local_dict))),
-	    put(max_pair,frequency:find_most_frequent(get(local_dict))),    
+            put(global_most_frequent, frequency:find_most_frequent(get(global_dict))),
             put(visited_fragment_list, [get(fragment_id)]);
         false ->
             do_nothing
     end.
 
-find_updated_frequency(NeighborDict, NeighborPair, NeighborFragmentId,NeighborMaxPair) ->
+
+find_updated_frequency(NeighborDict, NeighborFreqPair, NeighborFragmentId) ->
     initialize_frequency_details(),
     compile:file(frequency, [debug_info, export_all]),
     case lists:member(NeighborFragmentId, get(visited_fragment_list)) of
         false ->
-	    put(global_dict, frequency:merge(get(global_dict), NeighborDict)),
-            put(visited_fragment_list, lists:append(get(visited_fragment_list), [NeighborFragmentId])),
-	    {K1,V1} = frequency:find_most_frequent(get(global_dict)),
-	    {K,V} = NeighborMaxPair,
-	    case V > V1 of
-		true -> put(global_max_pair,{K,V}),
-			io:format("Max Pair ~s: ~B ~n",[K,V]);
-		false -> put(global_max_pair,{K1,V1}),
-			io:format("Max Pair ~s: ~B ~n",[K1,V1])
-	    end;
-	    
+            put(global_dict, frequency:merge(get(global_dict), NeighborDict)),
+            put(visited_fragment_list, lists:append(get(visited_fragment_list), [NeighborFragmentId]));
         true -> do_nothing
-    end.
+    end,
 
+    MyFreqPair = frequency:find_most_frequent(get(global_dict)),
+    {MyFreqWord, MyFreqCount} = MyFreqPair,
+    {NeighborFreqWord, NeighborFreqCount} = NeighborFreqPair,
+
+    case (MyFreqCount =< NeighborFreqCount) of
+        true -> case (MyFreqCount == NeighborFreqCount) of
+                    true -> case (max(MyFreqWord, NeighborFreqWord)) of
+                                MyFreqWord -> put(global_most_frequent, MyFreqPair);
+                                NeighborFreqWord -> put(global_most_frequent, NeighborFreqPair)
+                            end;
+                    false -> put(global_most_frequent, NeighborFreqPair)
+                end;
+        false -> put(global_most_frequent, MyFreqPair)
+    end,
+    {Word, Count} = get(global_most_frequent),
+    io:format("~nMost Frequent Word at Node ~-4B ===> ~s (~B)~n", [get(process_number), Word, Count]).
