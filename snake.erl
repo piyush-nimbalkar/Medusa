@@ -49,7 +49,7 @@ receiver() ->
     receive
         {long_word, ping_from_sender} ->
             send_longest_word();
-        {find_word, ping_from_sender} ->
+        {find_word, ping_from_sender} -> 
             send_find_word_result();
         {max_freq, ping_from_sender} ->
             send_frequency_details();
@@ -67,15 +67,12 @@ receiver() ->
     receiver().
 
 send_updated_fragment() ->
-    io:format("~n in send updated"),
     initialize_updated_fragment(),
     OwnSender = list_to_atom(string:concat("snake_sender_" , integer_to_list(get(process_number)))),
     OwnSender ! {pong_from_receiver,{get(fragment_id),get(updated_fragment)}}.
-%    OwnSender ! {pong_from_receiver,"Hi"}.
 
 
 initialize_updated_fragment() ->
-   io:format("~n in initialize updated"),
    case (get(updated_fragment) == undefined) of
       true -> 
             io:format("in true~n"),
@@ -85,25 +82,18 @@ initialize_updated_fragment() ->
 %	    io:format("fragment is ~s",[get(fragment)]),
 %	    io:format("od is ~s",[get(old_data)]),
 %	    io:format("new is ~s",[get(new_data)]),
-	    case (get(fragment_id) == get(fragment_to_be_modified)) of
-		true ->  io:format("in 2nd true~n"),put(updated_fragment,update_fragment:update_word(get(fragment),get(old_data),get(new_data)));
-		false -> io:format("word not found in fragment~n")
-	    end;
+%	    case (get(fragment_id) == get(fragment_to_be_modified)) of
+%		true ->  io:format("in 2nd true~n"),%put(updated_fragment,update_fragment:update_word(get(fragment),get(old_data),get(new_data)));
+	put(fragment,update_fragment:update_word(get(fragment), "Krishna","Shiva"));
+%
+%		false -> io:format("word not found in fragment~n")
+%	    end;
 	false -> do_nothing
 	end.
 
 
 find_updated_frag(FragId,OldData,NewData) ->
-   io:format("in find_updated~n"),
-   case (get(updated_fragment) == undefined) of
-      true ->
-            compile:file(update_fragment, [debug_info, export_all]),
-            case (get(fragment_id) == FragId) of
-                true ->  io:format("in 2nd true~n"),put(updated_fragment,update_fragment:update_word(FragId,OldData,NewData));
-                false -> do_nothing
-            end;
-        false -> do_nothing
-        end.
+   initialize_updated_fragment().
    
    
 send_frequency_details() ->

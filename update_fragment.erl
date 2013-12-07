@@ -11,7 +11,7 @@ update_word( Packet, Old_Word, New_Word) ->
         Tokens = string:tokens(Packet, " "),
         ResultList = search_word(Tokens, Old_Word,New_Word),
         ResultFrag = string:join( ResultList, " "),
-        io:format("RES ::: ~p~n", [ResultFrag]),
+        io:format("RES ::: ~s~n", [ResultFrag]),
         ResultFrag.
 
 
@@ -20,12 +20,17 @@ search_word( Tokens, Old_Word, New_Word) when length(Tokens) == 0 ->
 
 search_word( Tokens, Old_Word, New_Word) ->
         [Head | Tail] = Tokens,
-        {match, [{Start, Length}]} = re:run(Head, "[a-zA-Z]+"),
-        Token = string:substr(Head, Start+1, Length),
-        if Token == Old_Word ->
-                List = [New_Word] ++ search_word( Tail, Old_Word,New_Word);
-        true ->
-                List = [Head] ++ search_word( Tail, Old_Word,New_Word)
-        end,
+	case re:run(Head, "[a-zA-Z]+") of
+	        {match, [{Start, Length}]} ->
+		        Token = string:substr(Head, Start+1, Length),
+
+        		if Token == Old_Word ->
+        	        	List = [New_Word] ++ search_word( Tail, Old_Word,New_Word);
+		        true ->
+        		        List = [Head] ++ search_word( Tail, Old_Word,New_Word)
+        		end;
+		nomatch ->
+			List = [Head] ++ search_word( Tail, Old_Word,New_Word)
+	end,
         List.
 
