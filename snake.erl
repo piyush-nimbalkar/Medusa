@@ -1,7 +1,6 @@
 -module(snake).
 -export([sender/2, start_receiver/4]).
 
-
 start_receiver(ProcessNumber, ProcessLimit, FragmentId, Fragment) ->
     put(process_number, ProcessNumber),
     put(fragment_id, FragmentId),
@@ -15,15 +14,12 @@ sender(ProcessNumber, ProcessLimit) ->
     NeighborSender = list_to_atom(string:concat("snake_sender_" , Neighbor)),
     NeighborReceiver = list_to_atom(string:concat("snake_receiver_" , Neighbor)),
     OwnReceiver = list_to_atom(string:concat("snake_receiver_" , integer_to_list(ProcessNumber))),
-
     timer:sleep(1000),
-
     update_protocol(),
     OwnReceiver ! {get(protocol), ping_from_sender},
     receive
         {pong_from_receiver, Value} -> got_value_from_receiver
     end,
-
     NeighborSender ! {protocol, get(protocol)},
     NeighborReceiver ! {get(protocol), ProcessNumber, Value},
     sender(ProcessNumber, ProcessLimit).
@@ -41,9 +37,9 @@ update_protocol() ->
                 {protocol, update_frag, {FragmentNumber, {OldData, NewData}}} ->
                     put(protocol, update_frag),
                     put(fragment_to_be_modified, FragmentNumber),
-                    put(old_data, OldData),
+		    put(old_data, OldData),
                     put(new_data, NewData)
-            end;
+		end;
         false ->
             do_nothing
     end.
@@ -57,21 +53,63 @@ receiver() ->
             send_find_word_result();
         {max_freq, ping_from_sender} ->
             send_frequency_details();
+	{update_frag,ping_from_sender} ->
+	    send_updated_fragment();
         {long_word, _, NeighborWord} ->
             find_longest_word(NeighborWord);
         {find_word, _, NeighborResult} ->
             find_word_result(NeighborResult);
         {max_freq, _, {NeighborDict, GlobalMostFreq, NeighborFragmentId}} ->
-            find_updated_frequency(NeighborDict, GlobalMostFreq, NeighborFragmentId)
+            find_updated_frequency(NeighborDict, GlobalMostFreq, NeighborFragmentId);
+	{update_frag,_,{FragId,OldData,Newdata}} ->
+	    find_updated_frag(FragId,OldData,Newdata)
     end,
     receiver().
 
+send_updated_fragment() ->
+    io:format("~n in send updated"),
+    initialize_updated_fragment(),
+    OwnSender = list_to_atom(string:concat("snake_sender_" , integer_to_list(get(process_number)))),
+    OwnSender ! {pong_from_receiver,{get(fragment_id),get(updated_fragment)}}.
+%    OwnSender ! {pong_from_receiver,"Hi"}.
 
+
+initialize_updated_fragment() ->
+   io:format("~n in initialize updated"),
+   case (get(updated_fragment) == undefined) of
+      true -> 
+            io:format("in true~n"),
+	    compile:file(update_fragment, [debug_info, export_all]),
+%	    Frag = get(fragment_to_be_modified),
+%	    io:format("frag is ~p",[Frag]),
+%	    io:format("fragment is ~s",[get(fragment)]),
+%	    io:format("od is ~s",[get(old_data)]),
+%	    io:format("new is ~s",[get(new_data)]),
+	    case (get(fragment_id) == get(fragment_to_be_modified)) of
+		true ->  io:format("in 2nd true~n"),put(updated_fragment,update_fragment:update_word(get(fragment),get(old_data),get(new_data)));
+		false -> io:format("word not found in fragment~n")
+	    end;
+	false -> do_nothing
+	end.
+
+
+find_updated_frag(FragId,OldData,NewData) ->
+   io:format("in find_updated~n"),
+   case (get(updated_fragment) == undefined) of
+      true ->
+            compile:file(update_fragment, [debug_info, export_all]),
+            case (get(fragment_id) == FragId) of
+                true ->  io:format("in 2nd true~n"),put(updated_fragment,update_fragment:update_word(FragId,OldData,NewData));
+                false -> do_nothing
+            end;
+        false -> do_nothing
+        end.
+   
+   
 send_frequency_details() ->
     initialize_frequency_details(),
     OwnSender = list_to_atom(string:concat("snake_sender_" , integer_to_list(get(process_number)))),
     OwnSender ! {pong_from_receiver, {get(local_dict), get(global_most_frequent), get(fragment_id)}}.
-
 
 send_find_word_result() ->
     initialize_find_word(),

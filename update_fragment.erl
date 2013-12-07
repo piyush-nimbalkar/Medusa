@@ -11,7 +11,7 @@ update_word( Packet, Old_Word, New_Word) ->
         Tokens = string:tokens(Packet, " "),
         ResultList = search_word(Tokens, Old_Word,New_Word),
         ResultFrag = string:join( ResultList, " "),
-%        io:format("RES ::: ~p~n", [ResultFrag]),
+        io:format("RES ::: ~p~n", [ResultFrag]),
         ResultFrag.
 
 
