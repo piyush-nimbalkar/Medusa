@@ -31,6 +31,9 @@ update_protocol() ->
             receive
                 {protocol, Protocol} ->
                     put(protocol, Protocol);
+                {protocol, search_word, Word} ->
+                    put(protocol, search_word),
+                    put(word_to_be_searched, Word);
                 {protocol, update_frag, {FragmentNumber, {OldData, NewData}}} ->
                     put(protocol, update_frag),
                     put(fragment_to_be_modified, FragmentNumber),
@@ -46,12 +49,16 @@ receiver() ->
     receive
         {long_word, ping_from_sender} ->
             send_longest_word();
+        {search_word, ping_from_sender} ->
+            send_search_word_result();
         {max_freq, ping_from_sender} ->
             send_frequency_details();
 	{update_frag,ping_from_sender} ->
 	    send_updated_fragment();
         {long_word, _, NeighborWord} ->
             find_longest_word(NeighborWord);
+        {search_word, _, NeighborResult} ->
+            find_search_results(NeighborResult);
         {max_freq, _, {NeighborDict, GlobalMostFreq, NeighborFragmentId}} ->
             find_updated_frequency(NeighborDict, GlobalMostFreq, NeighborFragmentId);
 	{update_frag,_,{FragId,OldData,Newdata}} ->
@@ -68,13 +75,7 @@ send_updated_fragment() ->
 initialize_updated_fragment() ->
    case (get(updated_fragment) == undefined) of
       true -> 
-            io:format("in true~n"),
 	    compile:file(update_fragment, [debug_info, export_all]),
-%	    Frag = get(fragment_to_be_modified),
-%	    io:format("frag is ~p",[Frag]),
-%	    io:format("fragment is ~s",[get(fragment)]),
-%	    io:format("od is ~s",[get(old_data)]),
-%	    io:format("new is ~s",[get(new_data)]),
 %	    case (get(fragment_id) == get(fragment_to_be_modified)) of
 %		true ->  io:format("in 2nd true~n"),%put(updated_fragment,update_fragment:update_word(get(fragment),get(old_data),get(new_data)));
 	put(fragment,update_fragment:update_word(get(fragment), "Krishna","Shiva"));
@@ -93,6 +94,11 @@ send_frequency_details() ->
     OwnSender = list_to_atom(string:concat("snake_sender_" , integer_to_list(get(process_number)))),
     initialize_frequency_details(),
     OwnSender ! {pong_from_receiver, {get(local_dict), get(global_most_frequent), get(fragment_id)}}.
+
+send_search_word_result() ->
+    OwnSender = list_to_atom(string:concat("snake_sender_" , integer_to_list(get(process_number)))),
+    init_search_word(),
+    OwnSender ! {pong_from_receiver, get(search_results)}.
 
 send_longest_word() ->
     OwnSender = list_to_atom(string:concat("snake_sender_" , integer_to_list(get(process_number)))),
@@ -134,6 +140,47 @@ update_longest_word(NeighborWord) ->
             io:format("Updated Word at Node ~-4B: ~s -> ~s~n~n", [ProcessNumber, LongestWord, NeighborWord]),
             put(longest_word, NeighborWord)
     end.
+
+
+init_search_word() ->
+    case (get(found_word) == undefined) of
+        true ->
+            compile:file(search_word, [debug_info, export_all]),
+            put(found_word, search_word:find_word(get(fragment),"Krishna")),
+            case get(found_word) == true of
+                true -> %% The inner cases may not be necessary. Can be removed.
+                        case (get(search_results) == undefined) of
+                                true -> put(search_results,  [get(process_number)]);
+                                false -> put(search_results, lists:append(get(search_results),get(process_number)))
+                        end;
+                false -> 
+                        case (get(search_results) == undefined) of
+                                true -> put(search_results, []);
+                                false -> do_nothing
+                        end
+            end;
+        false ->
+            do_nothing
+    end.
+
+find_search_results(NeighborResult) ->
+    init_search_word(),
+    case (length(NeighborResult) > 0) of
+        true ->
+            update_found_word_result(NeighborResult);
+        false ->
+            io:format("Search Results at Node ~p :: ~p  ~n~n",[get(process_number), get(search_results)])
+%            do_nothing
+    end.
+
+update_found_word_result(NeighborResult) ->
+    ProcessNumber = get(process_number),
+    Set1 = sets:from_list(get(search_results)),
+    Set2 = sets:from_list(NeighborResult),
+    Set3 = sets:union(Set1, Set2),
+    List = sets:to_list(Set3),
+    io:format("Updated Search Results at Node ~p :: ~w  ~n~n",[ProcessNumber, List]),
+    put(search_results,List).
 
 
 initialize_frequency_details() ->

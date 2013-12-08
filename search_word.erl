@@ -9,19 +9,24 @@ start() ->
 find_word(Packet, Word) ->
 	Tokens = string:tokens(Packet, " "),
 	Result = search_word(Tokens, Word),
-        io:format("Result : ~s~n",[Result]).
+        Result.
 
 search_word(Tokens, Word) when length(Tokens) == 0 ->
 	false;
 
 search_word( Tokens, Word) ->
 	[Head | Tail] = Tokens,
-	{match, [{Start, Length}]} = re:run(Head, "[a-zA-Z]+"),
-	Token = string:substr(Head, Start+1, Length),
-        if Token == Word ->
-		true;
-	true ->
-		Result = search_word( Tail, Word),
-		Result
+%	{match, [{Start, Length}]} = re:run(Head, "[a-zA-Z]+"),
+	case re:run(Head, "[a-zA-Z]+") of
+		{match, [{Start, Length}]} ->	
+			Token = string:substr(Head, Start+1, Length),
+		        if Token == Word ->
+				true;
+			true ->
+				Result = search_word( Tail, Word),
+				Result
+			end;
+		nomatch ->
+			Result = search_word( Tail, Word),
+                        Result
 	end.
-
