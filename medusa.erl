@@ -40,8 +40,8 @@ select_option(Fragments) ->
         "1" ->
             snake_sender_1 ! {protocol, long_word};
         "2" ->
-            {ok, [Word]} = io:fread("Enter the word to be searched : ", "~s"),
-            snake_sender_1 ! {protocol, find_word, Word};
+            {ok, [W]} = io:fread("Enter the word to be searched : ", "~s"),
+            io:format("Word is : ~s~n",[W]);
         "3" ->
             snake_sender_1 ! {protocol, max_freq};
         "4" ->

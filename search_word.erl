@@ -1,22 +1,27 @@
 -module(search_word).
--export([find_word/2]).
+-export([start/0]).
 
+start() ->
+	Packet = "...Heytretrrrrrrrrrrrrrrr$%$#?? you good terminal, Happy Thanksgiving!",
+	Word = "Thanksgiving",
+	find_word(Packet, Word).
 
 find_word(Packet, Word) ->
-    Tokens = string:tokens(Packet, " "),
-    search_word(Tokens, Word).
-
+	Tokens = string:tokens(Packet, " "),
+	Result = search_word(Tokens, Word),
+        io:format("Result : ~s~n",[Result]).
 
 search_word(Tokens, Word) when length(Tokens) == 0 ->
-    false;
-search_word(Tokens, Word) ->
-    [Head | Tail] = Tokens,
-    case re:run(Head, "[a-zA-Z]+") of
-        {match, [{Start, Length}]} ->
-		        case Word == string:substr(Head, Start+1, Length) of
-                true -> true;
-                false -> search_word(Tail, Word)
-            end;
-        nomatch ->
-            search_word(Tail, Word)
-    end.
+	false;
+
+search_word( Tokens, Word) ->
+	[Head | Tail] = Tokens,
+	{match, [{Start, Length}]} = re:run(Head, "[a-zA-Z]+"),
+	Token = string:substr(Head, Start+1, Length),
+        if Token == Word ->
+		true;
+	true ->
+		Result = search_word( Tail, Word),
+		Result
+	end.
+
