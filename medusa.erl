@@ -3,8 +3,8 @@
 
 
 start() ->
-    NumOfNodes = 10,
-    NumOfReplicas = 2,
+    {ok, [NumOfNodes]} = io:fread("Enter The Number Of Nodes : ", "~d"),
+    {ok, [NumOfReplicas]} = io:fread("Enter The Replicas : ", "~d"),
     Tokens = read_file("data.txt"),
     FileLength  = length(Tokens),
     FragSize = NumOfReplicas * (FileLength div (NumOfNodes - 1)),
@@ -24,7 +24,7 @@ create_node(NodeNumber, NumOfNodes, Fragments) ->
     SenderName = list_to_atom(string:concat("snake_sender_", integer_to_list(NodeNumber))),
     ReceiverName = list_to_atom(string:concat("snake_receiver_", integer_to_list(NodeNumber))),
     FragmentNumber = (NodeNumber rem length(Fragments)) + 1,
-    register(SenderName, spawn_link(snake, sender, [NodeNumber, NumOfNodes])),
+    register(SenderName, spawn_link(snake, start_sender, [NodeNumber, NumOfNodes])),
     register(ReceiverName, spawn_link(snake, start_receiver, [NodeNumber, FragmentNumber, lists:nth(FragmentNumber, Fragments)])),
     create_node(NodeNumber + 1, NumOfNodes, Fragments).
 

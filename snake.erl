@@ -1,5 +1,32 @@
 -module(snake).
--export([sender/2, start_receiver/3]).
+-export([start_sender/2, start_receiver/3]).
+
+
+start_sender(ProcessNumber, ProcessLimit) ->
+    put(process_number, ProcessNumber),
+    put(process_limit, ProcessLimit),
+    put(neighbor_count, ceiling(log2(ProcessLimit))),
+    put(neighbor_list, get_neighbors(ProcessNumber, get(neighbor_count) - 1)),
+    sender().
+
+
+get_neighbors(MyNumber, 0) ->
+    [(MyNumber + 1) rem get(process_limit) + 1];
+get_neighbors(MyNumber, Index) ->
+    [(MyNumber + trunc(math:pow(2, Index))) rem get(process_limit) + 1 | get_neighbors(MyNumber, Index - 1)].
+
+
+ceiling(Value) ->
+    TruncatedValue = erlang:trunc(Value),
+    case TruncatedValue == Value of
+        true -> TruncatedValue;
+        false -> TruncatedValue + 1
+    end.
+
+
+log2(Value) ->
+    math:log(Value) / math:log(2).
+
 
 start_receiver(ProcessNumber, FragmentId, Fragment) ->
     put(process_number, ProcessNumber),
@@ -8,12 +35,12 @@ start_receiver(ProcessNumber, FragmentId, Fragment) ->
     receiver().
 
 
-sender(ProcessNumber, ProcessLimit) ->
+sender() ->
     random:seed(now()),
-    Neighbor = integer_to_list(random:uniform(ProcessLimit)),
-    NeighborSender = list_to_atom(string:concat("snake_sender_" , Neighbor)),
-    NeighborReceiver = list_to_atom(string:concat("snake_receiver_" , Neighbor)),
-    OwnReceiver = list_to_atom(string:concat("snake_receiver_" , integer_to_list(ProcessNumber))),
+    Neighbor = integer_to_list(lists:nth(random:uniform(get(neighbor_count)), get(neighbor_list))),
+    NeighborSender = list_to_atom(string:concat("snake_sender_", Neighbor)),
+    NeighborReceiver = list_to_atom(string:concat("snake_receiver_", Neighbor)),
+    OwnReceiver = list_to_atom(string:concat("snake_receiver_", integer_to_list(get(process_number)))),
     timer:sleep(500),
     update_protocol(),
 
@@ -32,8 +59,8 @@ sender(ProcessNumber, ProcessLimit) ->
         update_frag -> NeighborSender ! {protocol, update_frag, Value};
         _ -> NeighborSender ! {protocol, get(protocol)}
     end,
-    NeighborReceiver ! {get(protocol), ProcessNumber, Value},
-    sender(ProcessNumber, ProcessLimit).
+    NeighborReceiver ! {get(protocol), Value},
+    sender().
 
 
 update_protocol() ->
@@ -66,13 +93,13 @@ receiver() ->
             send_frequency_details();
         {update_frag, ping_from_sender, UpdateInformation} ->
             send_update_information(UpdateInformation);
-        {long_word, _, NeighborWord} ->
+        {long_word, NeighborWord} ->
             find_longest_word(NeighborWord);
-        {search_word, _, {SearchWord, NeighborResult}} ->
+        {search_word, {SearchWord, NeighborResult}} ->
             find_search_results(SearchWord, NeighborResult);
-        {max_freq, _, {NeighborDict, GlobalMostFreq, NeighborFragmentId}} ->
+        {max_freq, {NeighborDict, GlobalMostFreq, NeighborFragmentId}} ->
             find_updated_frequency(NeighborDict, GlobalMostFreq, NeighborFragmentId);
-        {update_frag, _, {FragId, {OldData, NewData}}} ->
+        {update_frag, {FragId, {OldData, NewData}}} ->
             update_fragment(FragId, OldData, NewData)
     end,
     receiver().
