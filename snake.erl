@@ -2,17 +2,17 @@
 -export([start_sender/2, start_receiver/3]).
 
 
-start_sender(ProcessNumber, ProcessLimit) ->
+start_sender(NodeNumber, NodeLimit) ->
     compile:file(chord, [debug_info, export_all]),
-    put(process_number, ProcessNumber),
-    put(process_limit, ProcessLimit),
-    put(neighbor_count, chord:get_neighbor_count(ProcessLimit)),
-    put(neighbor_list, chord:get_neighbors(ProcessNumber, get(neighbor_count) - 1)),
+    put(node_number, NodeNumber),
+    put(node_limit, NodeLimit),
+    put(neighbor_count, chord:get_neighbor_count(NodeLimit)),
+    put(neighbor_list, chord:get_neighbors(NodeNumber, NodeLimit, get(neighbor_count) - 1)),
     sender().
 
 
-start_receiver(ProcessNumber, FragmentId, Fragment) ->
-    put(process_number, ProcessNumber),
+start_receiver(NodeNumber, FragmentId, Fragment) ->
+    put(node_number, NodeNumber),
     put(fragment_id, FragmentId),
     put(fragment, Fragment),
     receiver().
@@ -23,7 +23,7 @@ sender() ->
     Neighbor = integer_to_list(lists:nth(random:uniform(get(neighbor_count)), get(neighbor_list))),
     NeighborSender = list_to_atom(string:concat("snake_sender_", Neighbor)),
     NeighborReceiver = list_to_atom(string:concat("snake_receiver_", Neighbor)),
-    OwnReceiver = list_to_atom(string:concat("snake_receiver_", integer_to_list(get(process_number)))),
+    OwnReceiver = list_to_atom(string:concat("snake_receiver_", integer_to_list(get(node_number)))),
     timer:sleep(500),
     update_protocol(),
 
@@ -99,7 +99,7 @@ initialize_longest_word() ->
 
 send_longest_word() ->
     initialize_longest_word(),
-    OwnSender = list_to_atom(string:concat("snake_sender_" , integer_to_list(get(process_number)))),
+    OwnSender = list_to_atom(string:concat("snake_sender_" , integer_to_list(get(node_number)))),
     LongestWord = get(longest_word),
     OwnSender ! {pong_from_receiver, LongestWord}.
 
@@ -114,13 +114,13 @@ find_longest_word(NeighborWord) ->
 
 update_longest_word(NeighborWord) ->
     LongestWord = get(longest_word),
-    ProcessNumber = get(process_number),
+    NodeNumber = get(node_number),
     case (length(NeighborWord) == length(LongestWord)) of
         true ->
-            io:format("Updated Word at Node ~-4B: ~s -> ~s~n~n", [ProcessNumber, LongestWord, max(NeighborWord, LongestWord)]),
+            io:format("Updated Word at Node ~-4B: ~s -> ~s~n~n", [NodeNumber, LongestWord, max(NeighborWord, LongestWord)]),
             put(longest_word, max(NeighborWord, LongestWord));
         false ->
-            io:format("Updated Word at Node ~-4B: ~s -> ~s~n~n", [ProcessNumber, LongestWord, NeighborWord]),
+            io:format("Updated Word at Node ~-4B: ~s -> ~s~n~n", [NodeNumber, LongestWord, NeighborWord]),
             put(longest_word, NeighborWord)
     end.
 
@@ -131,7 +131,7 @@ initialize_search_word(SearchWord) ->
             compile:file(search_word, [debug_info, export_all]),
             put(found_word, search_word:find_word(get(fragment), SearchWord)),
             case get(found_word) of
-                true -> put(search_results,  [get(process_number)]);
+                true -> put(search_results,  [get(node_number)]);
                 false -> put(search_results, [])
             end;
         false ->
@@ -141,7 +141,7 @@ initialize_search_word(SearchWord) ->
 
 send_search_word_result(SearchWord) ->
     initialize_search_word(SearchWord),
-    OwnSender = list_to_atom(string:concat("snake_sender_" , integer_to_list(get(process_number)))),
+    OwnSender = list_to_atom(string:concat("snake_sender_" , integer_to_list(get(node_number)))),
     OwnSender ! {pong_from_receiver, {SearchWord, get(search_results)}}.
 
 
@@ -151,7 +151,7 @@ find_search_results(SearchWord, NeighborResult) ->
         true -> update_found_word_result(NeighborResult);
         false -> do_nothing
     end,
-    io:format("Search Results at Node ~-4B ===> ~p  ~n~n", [get(process_number), get(search_results)]).
+    io:format("Search Results at Node ~-4B ===> ~p  ~n~n", [get(node_number), get(search_results)]).
 
 
 update_found_word_result(NeighborResult) ->
@@ -176,7 +176,7 @@ initialize_frequency_details() ->
 
 
 send_frequency_details() ->
-    OwnSender = list_to_atom(string:concat("snake_sender_" , integer_to_list(get(process_number)))),
+    OwnSender = list_to_atom(string:concat("snake_sender_" , integer_to_list(get(node_number)))),
     initialize_frequency_details(),
     OwnSender ! {pong_from_receiver, {get(local_dict), get(global_most_frequent), get(fragment_id)}}.
 
@@ -206,11 +206,11 @@ find_updated_frequency(NeighborDict, NeighborFreqPair, NeighborFragmentId) ->
         false -> put(global_most_frequent, MyFreqPair)
     end,
     {Word, Count} = get(global_most_frequent),
-    io:format("~nMost Frequent Word at Node ~-4B ===> ~s (~B)~n", [get(process_number), Word, Count]).
+    io:format("~nMost Frequent Word at Node ~-4B ===> ~s (~B)~n", [get(node_number), Word, Count]).
 
 
 send_update_information(Information) ->
-    OwnSender = list_to_atom(string:concat("snake_sender_" , integer_to_list(get(process_number)))),
+    OwnSender = list_to_atom(string:concat("snake_sender_" , integer_to_list(get(node_number)))),
     OwnSender ! {pong_from_receiver, Information}.
 
 
@@ -219,18 +219,18 @@ update_fragment(FragId, OldData, NewData) ->
         undefined ->
             case get(fragment_id) == FragId of
                 true ->
-                    io:format("~nNode ~-4B ===> Updating . . . . . .~n", [get(process_number)]),
+                    io:format("~nNode ~-4B ===> Updating . . . . . .~n", [get(node_number)]),
                     compile:file(update_fragment, [debug_info, export_all]),
                     put(fragment, update_fragment:update_word(get(fragment), OldData, NewData)),
-                    io:format("~n------------ Updated Fragment on Node ~B -----------~n~n~s", [get(process_number), get(fragment)]),
+                    io:format("~n------------ Updated Fragment on Node ~B -----------~n~n~s", [get(node_number), get(fragment)]),
                     io:format("~n~n------------------------------------------------~n"),
                     put(is_fragment_updated, true);
                 false ->
-                    io:format("~nNode ~-4B ===> Not My Fragment~n", [get(process_number)]),
+                    io:format("~nNode ~-4B ===> Not My Fragment~n", [get(node_number)]),
                     put(is_fragment_updated, false)
             end;
         true ->
-            io:format("~nNode ~-4B ===> Fragment Already Updated!~n", [get(process_number)]);
+            io:format("~nNode ~-4B ===> Fragment Already Updated!~n", [get(node_number)]);
         false ->
-            io:format("~nNode ~-4B ===> Not My Fragment~n", [get(process_number)])
+            io:format("~nNode ~-4B ===> Not My Fragment~n", [get(node_number)])
     end.
