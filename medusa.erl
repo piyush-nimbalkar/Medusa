@@ -34,7 +34,7 @@ select_option(Fragments) ->
     io:format("2 : Search a Word ~n"),
     io:format("3 : Find Most Frequent Word ~n"),
     io:format("4 : Update Contents of a Fragment ~n"),
-    io:format("5 : Exit the Program ~n"),
+    io:format("5 : Exit the Program ~n~n"),
     {ok, [Choice]} = io:fread("Please Enter Your Choice: ", "~s"),
     case Choice of
         "1" ->
@@ -45,10 +45,10 @@ select_option(Fragments) ->
         "3" ->
             snake_sender_1 ! {protocol, max_freq};
         "4" ->
-            io:format("Fragment that you want to modify (1 - ~B): ", [length(Fragments)]),
+            io:format("~nFragment that you want to modify (1 - ~B): ", [length(Fragments)]),
             {ok, [FragmentNumber]} = io:fread("", "~d"),
-            io:format("---------------------------------------------------------~n"),
-            io:format("~s~n---------------------------------------------------------~n", [lists:nth(FragmentNumber, Fragments)]),
+            io:format("~n---------------------------------------------------------~n~n"),
+            io:format("~s~n~n---------------------------------------------------------~n~n", [lists:nth(FragmentNumber, Fragments)]),
             {ok, [OldData]} = io:fread("Replace String: ", "~s"),
             {ok, [NewData]} = io:fread("Replace String With: ", "~s"),
             snake_sender_1 ! {protocol, update_frag, {FragmentNumber, {OldData, NewData}}};

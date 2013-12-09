@@ -1,36 +1,25 @@
 -module(update_fragment).
--export([start/0]).
-
-start() ->
-        Packet = "...Heytretrrrrrrrrrrrrrrr$%$#?? you good terminal, Happy Thanksgiving!",
-        Old_Word = "Thanksgiving",
-        New_Word = "Christmas",
-	update_word( Packet, Old_Word, New_Word).
-
-update_word( Packet, Old_Word, New_Word) ->
-        Tokens = string:tokens(Packet, " "),
-        ResultList = search_word(Tokens, Old_Word,New_Word),
-        ResultFrag = string:join( ResultList, " "),
-        io:format("RES ::: ~s~n", [ResultFrag]),
-        ResultFrag.
+-export([update_word/3]).
 
 
-search_word( Tokens, Old_Word, New_Word) when length(Tokens) == 0 ->
-        [];
+update_word(Packet, Old_Word, New_Word) ->
+    Tokens = string:tokens(Packet, " "),
+    ResultList = replace_word(Tokens, Old_Word, New_Word),
+    string:join(ResultList, " ").
 
-search_word( Tokens, Old_Word, New_Word) ->
-        [Head | Tail] = Tokens,
-	case re:run(Head, "[a-zA-Z]+") of
-	        {match, [{Start, Length}]} ->
+
+replace_word(Tokens, Old_Word, New_Word) when length(Tokens) == 0 ->
+    [];
+replace_word(Tokens, Old_Word, New_Word) ->
+    [Head | Tail] = Tokens,
+    case re:run(Head, "[a-zA-Z]+") of
+        {match, [{Start, Length}]} ->
 		        Token = string:substr(Head, Start+1, Length),
-
         		if Token == Old_Word ->
-        	        	List = [New_Word] ++ search_word( Tail, Old_Word,New_Word);
-		        true ->
-        		        List = [Head] ++ search_word( Tail, Old_Word,New_Word)
+        	        	[New_Word] ++ replace_word(Tail, Old_Word, New_Word);
+               true ->
+        		        [Head] ++ replace_word(Tail, Old_Word, New_Word)
         		end;
-		nomatch ->
-			List = [Head] ++ search_word( Tail, Old_Word,New_Word)
-	end,
-        List.
-
+        nomatch ->
+            [Head] ++ replace_word(Tail, Old_Word, New_Word)
+    end.

@@ -19,6 +19,7 @@ sender(ProcessNumber, ProcessLimit) ->
 
     case get(protocol) of
         search_word -> OwnReceiver ! {get(protocol), ping_from_sender, get(word_to_search)};
+        update_frag -> OwnReceiver ! {get(protocol), ping_from_sender, {get(fragment_to_be_modified), {get(old_data), get(new_data)}}};
         _ -> OwnReceiver ! {get(protocol), ping_from_sender}
     end,
 
@@ -28,9 +29,9 @@ sender(ProcessNumber, ProcessLimit) ->
 
     case get(protocol) of
         search_word -> NeighborSender ! {protocol, search_word, get(word_to_search)};
+        update_frag -> NeighborSender ! {protocol, update_frag, Value};
         _ -> NeighborSender ! {protocol, get(protocol)}
     end,
-
     NeighborReceiver ! {get(protocol), ProcessNumber, Value},
     sender(ProcessNumber, ProcessLimit).
 
@@ -63,16 +64,16 @@ receiver() ->
             send_search_word_result(SearchWord);
         {max_freq, ping_from_sender} ->
             send_frequency_details();
-        {update_frag, ping_from_sender} ->
-            send_updated_fragment();
+        {update_frag, ping_from_sender, UpdateInformation} ->
+            send_update_information(UpdateInformation);
         {long_word, _, NeighborWord} ->
             find_longest_word(NeighborWord);
         {search_word, _, {SearchWord, NeighborResult}} ->
             find_search_results(SearchWord, NeighborResult);
         {max_freq, _, {NeighborDict, GlobalMostFreq, NeighborFragmentId}} ->
             find_updated_frequency(NeighborDict, GlobalMostFreq, NeighborFragmentId);
-        {update_frag, _, {FragId, OldData, NewData}} ->
-            find_updated_frag(FragId, OldData, NewData)
+        {update_frag, _, {FragId, {OldData, NewData}}} ->
+            update_fragment(FragId, OldData, NewData)
     end,
     receiver().
 
@@ -200,25 +201,28 @@ find_updated_frequency(NeighborDict, NeighborFreqPair, NeighborFragmentId) ->
     io:format("~nMost Frequent Word at Node ~-4B ===> ~s (~B)~n", [get(process_number), Word, Count]).
 
 
-initialize_updated_fragment() ->
-    case (get(updated_fragment) == undefined) of
-        true ->
-            compile:file(update_fragment, [debug_info, export_all]),
-                                                %	    case (get(fragment_id) == get(fragment_to_be_modified)) of
-                                                %		true ->  io:format("in 2nd true~n"),%put(updated_fragment,update_fragment:update_word(get(fragment),get(old_data),get(new_data)));
-            put(fragment,update_fragment:update_word(get(fragment), "Krishna","Shiva"));
-                                                %
-                                                %		false -> io:format("word not found in fragment~n")
-                                                %	    end;
-        false -> do_nothing
-    end.
-
-
-send_updated_fragment() ->
-    initialize_updated_fragment(),
+send_update_information(Information) ->
     OwnSender = list_to_atom(string:concat("snake_sender_" , integer_to_list(get(process_number)))),
-    OwnSender ! {pong_from_receiver,{get(fragment_id),get(updated_fragment)}}.
+    OwnSender ! {pong_from_receiver, Information}.
 
 
-find_updated_frag(FragId,OldData,NewData) ->
-    initialize_updated_fragment().
+update_fragment(FragId, OldData, NewData) ->
+    case get(is_fragment_updated) of
+        undefined ->
+            case get(fragment_id) == FragId of
+                true ->
+                    io:format("~nNode ~-4B ===> Updating . . . . . .~n", [get(process_number)]),
+                    compile:file(update_fragment, [debug_info, export_all]),
+                    put(fragment, update_fragment:update_word(get(fragment), OldData, NewData)),
+                    io:format("~n------------ Updated Fragment on Node ~B -----------~n~n~s", [get(process_number), get(fragment)]),
+                    io:format("~n~n------------------------------------------------~n"),
+                    put(is_fragment_updated, true);
+                false ->
+                    io:format("~nNode ~-4B ===> Not My Fragment~n", [get(process_number)]),
+                    put(is_fragment_updated, false)
+            end;
+        true ->
+            io:format("~nNode ~-4B ===> Fragment Already Updated!~n", [get(process_number)]);
+        false ->
+            io:format("~nNode ~-4B ===> Not My Fragment~n", [get(process_number)])
+    end.
