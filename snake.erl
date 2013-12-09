@@ -1,7 +1,7 @@
 -module(snake).
--export([sender/2, start_receiver/4]).
+-export([sender/2, start_receiver/3]).
 
-start_receiver(ProcessNumber, ProcessLimit, FragmentId, Fragment) ->
+start_receiver(ProcessNumber, FragmentId, Fragment) ->
     put(process_number, ProcessNumber),
     put(fragment_id, FragmentId),
     put(fragment, Fragment),
@@ -146,7 +146,6 @@ find_search_results(SearchWord, NeighborResult) ->
 
 
 update_found_word_result(NeighborResult) ->
-    ProcessNumber = get(process_number),
     MyResultSet = sets:from_list(get(search_results)),
     NeighborResultSet = sets:from_list(NeighborResult),
     TotalSet = sets:union(MyResultSet, NeighborResultSet),

@@ -25,7 +25,7 @@ create_node(NodeNumber, NumOfNodes, Fragments) ->
     ReceiverName = list_to_atom(string:concat("snake_receiver_", integer_to_list(NodeNumber))),
     FragmentNumber = (NodeNumber rem length(Fragments)) + 1,
     register(SenderName, spawn_link(snake, sender, [NodeNumber, NumOfNodes])),
-    register(ReceiverName, spawn_link(snake, start_receiver, [NodeNumber, NumOfNodes, FragmentNumber, lists:nth(FragmentNumber, Fragments)])),
+    register(ReceiverName, spawn_link(snake, start_receiver, [NodeNumber, FragmentNumber, lists:nth(FragmentNumber, Fragments)])),
     create_node(NodeNumber + 1, NumOfNodes, Fragments).
 
 
