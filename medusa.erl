@@ -5,10 +5,8 @@
 start() ->
     {ok, [NumOfNodes]} = io:fread("Enter The Number Of Nodes : ", "~d"),
     {ok, [NumOfReplicas]} = io:fread("Enter The Replicas : ", "~d"),
-    Tokens = read_file("data.txt"),
-    FileLength  = length(Tokens),
-    FragSize = NumOfReplicas * (FileLength div (NumOfNodes - 1)),
-    Fragments = make_sublists(FragSize, Tokens),
+    compile:file(fragment, [debug_info, export_all]),
+    Fragments = fragment:get_fragments('data.txt', NumOfNodes, NumOfReplicas),
     create_nodes(NumOfNodes, Fragments),
     select_option(Fragments).
 
@@ -56,37 +54,3 @@ select_option(Fragments) ->
         _ -> io:format("~nPlease Enter the Correct Choice !!~n")
     end,
     timer:sleep(600000).
-
-
-read_file(FileName)  ->
-    {ok, Device} = file:open(FileName, [read]),
-    List1 = [],
-    Tokens = count_lines(Device, List1),
-    Tokens.
-
-
-count_lines(Device,  List1) ->
-    case io:get_line(Device, "") of
-        eof  -> file:close(Device),
-                List1;
-        Line -> Tokens = string:tokens(Line, " "),
-                List3 = lists:append(List1, Tokens),
-                count_lines(Device, List3)
-    end.
-
-
-make_sublists(FragSize, Tokens) ->
-    {Fragment, Remaining} = if length(Tokens) >= FragSize ->
-                                    lists:split(FragSize, Tokens);
-                               true ->
-                                    {Tokens, []}
-                            end,
-    JoinedFrag = lists:foldl(fun(Item, Accumulation) ->
-                                     string:join([Accumulation, Item], " ")
-                             end, "", Fragment),
-    if Remaining == [] ->
-            [JoinedFrag];
-       true ->
-            UltimateList = make_sublists(FragSize, Remaining),
-            lists:append(UltimateList, [JoinedFrag])
-    end.

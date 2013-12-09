@@ -3,29 +3,12 @@
 
 
 start_sender(ProcessNumber, ProcessLimit) ->
+    compile:file(chord, [debug_info, export_all]),
     put(process_number, ProcessNumber),
     put(process_limit, ProcessLimit),
-    put(neighbor_count, ceiling(log2(ProcessLimit))),
-    put(neighbor_list, get_neighbors(ProcessNumber, get(neighbor_count) - 1)),
+    put(neighbor_count, chord:get_neighbor_count(ProcessLimit)),
+    put(neighbor_list, chord:get_neighbors(ProcessNumber, get(neighbor_count) - 1)),
     sender().
-
-
-get_neighbors(MyNumber, 0) ->
-    [(MyNumber + 1) rem get(process_limit) + 1];
-get_neighbors(MyNumber, Index) ->
-    [(MyNumber + trunc(math:pow(2, Index))) rem get(process_limit) + 1 | get_neighbors(MyNumber, Index - 1)].
-
-
-ceiling(Value) ->
-    TruncatedValue = erlang:trunc(Value),
-    case TruncatedValue == Value of
-        true -> TruncatedValue;
-        false -> TruncatedValue + 1
-    end.
-
-
-log2(Value) ->
-    math:log(Value) / math:log(2).
 
 
 start_receiver(ProcessNumber, FragmentId, Fragment) ->
@@ -49,7 +32,6 @@ sender() ->
         update_frag -> OwnReceiver ! {get(protocol), ping_from_sender, {get(fragment_to_be_modified), {get(old_data), get(new_data)}}};
         _ -> OwnReceiver ! {get(protocol), ping_from_sender}
     end,
-
     receive
         {pong_from_receiver, Value} -> got_value_from_receiver
     end,
