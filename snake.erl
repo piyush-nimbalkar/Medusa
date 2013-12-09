@@ -8,6 +8,7 @@ start_sender(NodeNumber, NodeLimit) ->
     put(node_limit, NodeLimit),
     put(neighbor_count, chord:get_neighbor_count(NodeLimit)),
     put(neighbor_list, chord:get_neighbors(NodeNumber, NodeLimit, get(neighbor_count) - 1)),
+    put(first_neighbor, 0),
     sender().
 
 
@@ -20,12 +21,21 @@ start_receiver(NodeNumber, FragmentId, Fragment) ->
 
 sender() ->
     random:seed(now()),
-    Neighbor = integer_to_list(lists:nth(random:uniform(get(neighbor_count)), get(neighbor_list))),
-    NeighborSender = list_to_atom(string:concat("snake_sender_", Neighbor)),
-    NeighborReceiver = list_to_atom(string:concat("snake_receiver_", Neighbor)),
     OwnReceiver = list_to_atom(string:concat("snake_receiver_", integer_to_list(get(node_number)))),
-    timer:sleep(500),
+    timer:sleep(200),
     update_protocol(),
+
+    case get(protocol) of
+        max_freq ->
+            put(first_neighbor, get(first_neighbor) + 1),
+            io:format("~n----------------------------------------~n"),
+            case get(first_neighbor) == 2 of
+                true -> Neighbor = integer_to_list(lists:nth(random:uniform(5), lists:seq(1, 5))),
+                        put(first_neighbor, 0);
+                false -> Neighbor = integer_to_list(lists:nth(random:uniform(get(node_limit)), lists:seq(1, get(node_limit))))
+            end;
+        _ -> Neighbor = integer_to_list(lists:nth(random:uniform(get(neighbor_count)), get(neighbor_list)))
+    end,
 
     case get(protocol) of
         search_word -> OwnReceiver ! {get(protocol), ping_from_sender, get(word_to_search)};
@@ -35,6 +45,9 @@ sender() ->
     receive
         {pong_from_receiver, Value} -> got_value_from_receiver
     end,
+
+    NeighborSender = list_to_atom(string:concat("snake_sender_", Neighbor)),
+    NeighborReceiver = list_to_atom(string:concat("snake_receiver_", Neighbor)),
 
     case get(protocol) of
         search_word -> NeighborSender ! {protocol, search_word, get(word_to_search)};
