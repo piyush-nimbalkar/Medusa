@@ -3,9 +3,18 @@
 
 
 get_neighbors(MyNumber, Limit, 0) ->
-    [(MyNumber + 1) rem Limit + 1];
+    Value = (MyNumber + 1) rem Limit,
+    case Value of
+        0 -> [Limit];
+        _ -> [Value]
+    end;
 get_neighbors(MyNumber, Limit, Index) ->
-    [(MyNumber + trunc(math:pow(2, Index))) rem Limit + 1 | get_neighbors(MyNumber, Limit, Index - 1)].
+    Value = (MyNumber + trunc(math:pow(2, Index))) rem Limit,
+    Value1 = case Value of
+        0 -> Limit;
+        _ -> Value
+    end,
+    [Value1 | get_neighbors(MyNumber, Limit, Index - 1)].
 
 
 get_neighbor_count(Value) ->

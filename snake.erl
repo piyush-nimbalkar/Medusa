@@ -8,7 +8,6 @@ start_sender(NodeNumber, NodeLimit) ->
     put(node_limit, NodeLimit),
     put(neighbor_count, chord:get_neighbor_count(NodeLimit)),
     put(neighbor_list, chord:get_neighbors(NodeNumber, NodeLimit, get(neighbor_count) - 1)),
-    put(first_neighbor, 0),
     sender().
 
 
@@ -26,14 +25,7 @@ sender() ->
     update_protocol(),
 
     case get(protocol) of
-        max_freq ->
-            put(first_neighbor, get(first_neighbor) + 1),
-            io:format("~n----------------------------------------~n"),
-            case get(first_neighbor) == 2 of
-                true -> Neighbor = integer_to_list(lists:nth(random:uniform(5), lists:seq(1, 5))),
-                        put(first_neighbor, 0);
-                false -> Neighbor = integer_to_list(lists:nth(random:uniform(get(node_limit)), lists:seq(1, get(node_limit))))
-            end;
+        max_freq -> Neighbor = integer_to_list(lists:nth(random:uniform(get(node_limit)), lists:seq(1, get(node_limit))));
         _ -> Neighbor = integer_to_list(lists:nth(random:uniform(get(neighbor_count)), get(neighbor_list)))
     end,
 
