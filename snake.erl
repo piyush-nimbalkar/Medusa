@@ -2,6 +2,8 @@
 -export([start_sender/2, start_receiver/3]).
 
 
+%% Starting point for a sender thread. The neighbors are determined here based
+%% on the Chord system.
 start_sender(NodeNumber, NodeLimit) ->
     compile:file(chord, [debug_info, export_all]),
     put(node_number, NodeNumber),
@@ -11,6 +13,7 @@ start_sender(NodeNumber, NodeLimit) ->
     sender().
 
 
+%% Starting point for a receiver thread.
 start_receiver(NodeNumber, FragmentId, Fragment) ->
     put(node_number, NodeNumber),
     put(fragment_id, FragmentId),
@@ -18,6 +21,8 @@ start_receiver(NodeNumber, FragmentId, Fragment) ->
     receiver().
 
 
+%% The sender function randomly chooses a neighbor and sends the updated information.
+%% This also takes the updated information from its receiver.
 sender() ->
     random:seed(now()),
     OwnReceiver = list_to_atom(string:concat("snake_receiver_", integer_to_list(get(node_number)))),
@@ -50,6 +55,7 @@ sender() ->
     sender().
 
 
+%% Updates the protocol in the sender thread
 update_protocol() ->
     case (get(protocol) == undefined) of
         true ->
@@ -70,6 +76,8 @@ update_protocol() ->
     end.
 
 
+%% Receiver thread that recieves messages from other senders and also carries out the
+%% operations depending on the current protocol in force
 receiver() ->
     receive
         {long_word, ping_from_sender} ->
@@ -91,7 +99,7 @@ receiver() ->
     end,
     receiver().
 
-
+%% Methods to determine the longest word
 initialize_longest_word() ->
     case (get(longest_word) == undefined) of
         true ->
@@ -129,7 +137,7 @@ update_longest_word(NeighborWord) ->
             put(longest_word, NeighborWord)
     end.
 
-
+%% Methods to search all nodes containing the SearchWord
 initialize_search_word(SearchWord) ->
     case (get(found_word) == undefined) of
         true ->
@@ -167,6 +175,7 @@ update_found_word_result(NeighborResult) ->
     put(search_results, TotalList).
 
 
+%% Methods to determine the highest frequency word in the file
 initialize_frequency_details() ->
     case (get(global_most_frequent) == undefined) of
         true ->
@@ -214,6 +223,7 @@ find_updated_frequency(NeighborDict, NeighborFreqPair, NeighborFragmentId) ->
     io:format("~nMost Frequent Word at Node ~-4B ===> ~s (~B)~n", [get(node_number), Word, Count]).
 
 
+%% Methods to update the given fragment
 send_update_information(Information) ->
     OwnSender = list_to_atom(string:concat("snake_sender_" , integer_to_list(get(node_number)))),
     OwnSender ! {pong_from_receiver, Information}.
