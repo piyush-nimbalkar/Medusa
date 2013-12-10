@@ -1,11 +1,6 @@
 -module(search_word).
--export([start/0]).
 
-start() ->
-	Packet = "...Heytretrrrrrrrrrrrrrrr$%$#?? you good terminal, Happy Thanksgiving!",
-	Word = "Thanksgiving",
-	find_word(Packet, Word).
-
+%% Find given word in packet
 find_word(Packet, Word) ->
 	Tokens = string:tokens(Packet, " "),
 	Result = search_word(Tokens, Word),

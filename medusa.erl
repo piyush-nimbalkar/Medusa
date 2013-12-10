@@ -1,7 +1,7 @@
 -module(medusa).
 -export([start/0]).
 
-
+%% Accept from user number of nodes, number of replicas of each fragment, create nodes and assign a fragment to each node 
 start() ->
     {ok, [NumOfNodes]} = io:fread("Enter The Number Of Nodes : ", "~d"),
     {ok, [NumOfReplicas]} = io:fread("Enter The Replicas : ", "~d"),
@@ -10,12 +10,12 @@ start() ->
     create_nodes(NumOfNodes, Fragments),
     select_option(Fragments).
 
-
+%% Create nodes
 create_nodes(NumOfNodes, Fragments) ->
     compile:file(snake, [debug_info, export_all]),
     create_node(1, NumOfNodes, Fragments).
 
-
+%% Create node and register each node with a name. Each node waits in receiving mode after creation
 create_node(NodeNumber, NumOfNodes, _) when NodeNumber > NumOfNodes ->
     done;
 create_node(NodeNumber, NumOfNodes, Fragments) ->
@@ -25,8 +25,8 @@ create_node(NodeNumber, NumOfNodes, Fragments) ->
     register(SenderName, spawn_link(snake, start_sender, [NodeNumber, NumOfNodes])),
     register(ReceiverName, spawn_link(snake, start_receiver, [NodeNumber, FragmentNumber, lists:nth(FragmentNumber, Fragments)])),
     create_node(NodeNumber + 1, NumOfNodes, Fragments).
-
-
+ 
+%% Display menu to user and accept input
 select_option(Fragments) ->
     io:format("~n1 : Longest Word ~n"),
     io:format("2 : Search a Word ~n"),

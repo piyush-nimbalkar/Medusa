@@ -1,17 +1,5 @@
 -module(frequency).
--export([start/0, create_dictionary/1, find_most_frequent/1, merge/2]).
-
-start() ->
-    Packet = "...Heytretrrrrrrrrrrrrrrr$%$#?? you good you you terminal, Happy Thanksgiving!",
-    Packet2 = "good terminal when is Thanksgiving!",
-    Dict1 = create_dictionary(Packet),
-    Dict2 = create_dictionary(Packet2),
-    MergedDict = merge(Dict1, Dict2),
-    print_dict(Dict1),
-    print_dict(Dict2),
-    print_dict(MergedDict),
-    {K,V} = find_most_frequent(MergedDict),
-    io:format("~s :~B",[K,V]).
+-export([create_dictionary/1, find_most_frequent/1, merge/2]).
 
 
 merge(Dict1, Dict2) ->
